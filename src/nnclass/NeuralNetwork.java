@@ -16,22 +16,23 @@ public class NeuralNetwork {
     
     private Neuron[] input;
     private ArrayList<Neuron[]> hidden;
-    private Neuron output;
+    private Neuron[] output;
     
     
     
-    public NeuralNetwork(int inputNeuron,int hiddenLayer,int[] hiddenNeuron)
+    public NeuralNetwork(int inputNeuron,int[] hiddenNeuron,int outputNeuron)
     {
         input = new Neuron[inputNeuron];
         hidden = new ArrayList<Neuron[]>();
-        for(int i = 0;i<hiddenLayer;i++)
+        for(int i = 0;i<hiddenNeuron.length;i++)
         {
             hidden.add(new Neuron[hiddenNeuron[i]]);
         }
         
-        initNeurons();
-        output = new Neuron();
+        output = new Neuron[outputNeuron];
         
+        initNeurons();
+              
         chainInputHidden();
         chainHidden();
         chainHiddenOutput();
@@ -50,6 +51,11 @@ public class NeuralNetwork {
             {
                 n[i]=new Neuron();
             }  
+        }
+        
+        for(int i = 0; i< output.length;i++)
+        {
+            output[i]=new Neuron();
         }
     }
     
@@ -90,14 +96,17 @@ public class NeuralNetwork {
         int k = hidden.size()-1;
         for(int i = 0; i< hidden.get(k).length;i++)
         {
-            Chain chain = new Chain(hidden.get(k)[i],output);
-            chain.setWeight(ThreadLocalRandom.current().nextDouble(0.5));
-            hidden.get(k)[i].addOutputChain(chain);
-            output.addInputChain(chain);
+            for(int j = 0; j<output.length;j++)
+            {
+                Chain chain = new Chain(hidden.get(k)[i],output[j]);
+                chain.setWeight(ThreadLocalRandom.current().nextDouble(0.5));
+                hidden.get(k)[i].addOutputChain(chain);
+                output[j].addInputChain(chain);
+            }
         }
     }
         
-    public double predict(double[] data)
+    public double[] predict(double[] data)
     {
         for(int i = 0;i<input.length;i++)
         {
@@ -112,18 +121,27 @@ public class NeuralNetwork {
             }
         }
         
-        return output.calcValue();
+        double[] res = new double[output.length];
+        for(int i = 0; i< output.length;i++)
+        {
+            res[i]=output[i].calcValue();
+        }
+        return res;
     }
     
-    public void backpropagation(double prediction,double expectation,double learningRate)
+    public void backpropagation(double[] prediction,double[] expectation,double learningRate)
     {
-        double error = prediction - expectation;
         
-        output.calcdW(error);
         
-        for(Chain chain : output.getInputChain())
+        for(int i = 0;i<output.length;i++)
         {
-            chain.changeWeight(learningRate);
+            double error = prediction[i] - expectation[i];
+            output[i].calcdW(error);
+        
+            for(Chain chain : output[i].getInputChain())
+            {
+                chain.changeWeight(learningRate);
+            }
         }
         
         for(int i = hidden.size()-1; i > -1;i--)
@@ -145,28 +163,63 @@ public class NeuralNetwork {
         
     }
     
-    public void train(double[][] data,double[] expectation ,int ages, double learningRate)
+    public double MSE(double[][] data,double[][] expectation)
+    {
+        double mse = 0;
+        for(int i = 0; i< expectation.length;i++)
+            {
+                double[] prediction = predict(data[i]);
+                double _mse=0;
+                for(int j = 0 ; j< prediction.length;j++)
+                {
+                    _mse += prediction[j] - expectation[i][j];
+                }
+                mse += Math.pow(_mse/prediction.length,2);
+            }
+        
+        
+        return Math.sqrt(mse/expectation.length);
+    }
+    
+    public void compareResults(double[][] data,double[][] expectation)
+    {
+        for(int i = 0;i<expectation.length;i++)
+        {
+            System.out.println("Prediction "+i);
+            double[] prediction = predict(data[i]);
+            for(int j = 0 ; j<output.length;j++)
+            {
+                System.out.println("expected "+expectation[i][j]+" get "+prediction[j]);
+            }
+        }
+    }
+    
+    public void train(double[][] data,double[][] expectation ,int ages, double learningRate)
     {
         for(int i = 0; i< ages;i++)
         {
-            double mse = 0;
+            //double mse = 0;
             
             for(int j = 0; j< expectation.length;j++)
             {
-                double prediction = predict(data[j]);
-                mse+= Math.pow(prediction - expectation[j],2);
+                double[] prediction = predict(data[j]);
+                //mse+= Math.pow(prediction[0] - expectation[j][0],2);
                 backpropagation(prediction,expectation[j],learningRate);
             }
             
-            String progress = i/(double)ages +"";
-            System.out.flush();
-            System.out.println("MSE : "+Math.sqrt(mse/expectation.length)+"Progress : "+progress+" %");
+            /*String progress = i/(double)ages*100 +"";
+            System.out.println("Progress : "+progress+" % " +" MSE : "+MSE(data,expectation));*/
         }
         
-        for(int i = 0;i<expectation.length;i++)
+        /*for(int i = 0;i<expectation.length;i++)
         {
-            System.out.println("prediction = "+predict(data[i])+" expectation = " + expectation[i]);
-        }
+            System.out.println("Prediction "+i);
+            double[] prediction = predict(data[i]);
+            for(int j = 0 ; j<output.length;j++)
+            {
+                System.out.println("expected "+expectation[i][j]+" get "+prediction[j]);
+            }
+        }*/
     }
     
 }

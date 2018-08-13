@@ -15,16 +15,6 @@ public class NNClass {
      * @param args the command line arguments
      */
     
-     class A
-     {
-         private A f;
-         public A()
-         {
-             
-         }
-         
-     }
-    
     public static void main(String[] args) {
         // TODO code application logic here
         
@@ -40,12 +30,24 @@ public class NNClass {
             {1,1,1}
         };
         
-        double[] expectation = new double[]{0,1,0,0,1,1,0,1};
+        double[][] expectation = new double[][]
+        {
+            {0},
+            {1},
+            {0},
+            {0},
+            {1},
+            {1},
+            {0},
+            {1}
+        };
         
         int[] hiddenLayers = new int[]{2};
         
-        NeuralNetwork nn = new NeuralNetwork(3,1,hiddenLayers);
+        NeuralNetwork nn = new NeuralNetwork(3,hiddenLayers,1);
         nn.train(input, expectation, 5000,0.08);
+        System.out.println("MSE = "+ nn.MSE(input, expectation));
+        nn.compareResults(input, expectation);
         
         
         
